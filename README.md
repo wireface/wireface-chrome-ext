@@ -6,6 +6,8 @@ Faces in browser pictures come to life with random blinks, double blinks, smiles
 
 ## Install the built extension
 
+Get the free download, promo video and installation guide at [wireface.dev/extension](https://wireface.dev/extension/).
+
 1. Open `chrome://extensions` in Chrome.
 2. Turn on **Developer mode**.
 3. Click **Load unpacked** and select the **`dist`** folder from a local build (see below).
@@ -17,6 +19,8 @@ Open the toolbar popup to pause everywhere, pause the current site, adjust **Per
 
 ### Recent updates
 
+Version 0.2.3 replaces the sideways nose wobble with a small upward twitch: a quick lift and smooth return over 0.4–0.6 seconds, with a softer accompanying sneer. The extension homepage now opens the dedicated download and installation page.
+
 Version 0.2.2 adds a clickable [wireface.dev](https://wireface.dev) link to the popup footer and extension homepage, and makes this repository build independently. It uses the desktop app's original blue-to-violet wireframe logo on solid black for the Chrome icons and popup. The popup background is also black. Run `npm run icons` to regenerate the PNG sizes from the checked-in `assets/icons/logo.svg` (the desktop app's original artwork, backed with black); ordinary builds copy the checked-in `assets/icons` files.
 
 - **Eyes follow the pointer** smoothly within the photographed eye openings. Tracking uses the mouse/pen position, not a camera. The irises move inside the animated lids, so blinks continue to cover them. Turn this off to return the eyes to their original direction.
@@ -24,7 +28,7 @@ Version 0.2.2 adds a clickable [wireface.dev](https://wireface.dev) link to the 
 - **Mood for faces** defaults to **Random per face**. Each face keeps its assignment when it scrolls out of view and back. **Shuffle** assigns another set without rescanning images. Choose **Neutral**, **Happy**, **Cheeky**, **Curious**, **Calm**, **Thoughtful**, **Sleepy** or **Grumpy** to apply that mood to all faces. Mood changes fade smoothly; short idle/hover expressions temporarily take precedence and then return to the standing mood.
 - **More visible idle motion:** the first micro expression starts within 0.4–1.8 seconds of active animation; subsequent expressions have 1.2–3.2 second gaps. A shuffled pool visits every expression before repeating it. Pout and squint are now included, and flat-photo expression strength is increased without amplifying full blinks. All animation remains silent with the jaw closed.
 
-To update an existing unpacked installation, click **Reload** on Wireface at `chrome://extensions`, then refresh the web pages. The same `dist` folder and `wireface-chrome.zip` now contain version 0.2.2; existing preferences are preserved and the new interaction controls default to enabled.
+To update an existing unpacked installation, replace the files in its folder with the latest build, click **Reload** on Wireface at `chrome://extensions`, then refresh the web pages. The same `dist` folder and `wireface-chrome.zip` now contain version 0.2.3; existing preferences are preserved.
 
 ### Why the earlier version looked like blinking only
 
