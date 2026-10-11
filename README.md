@@ -19,6 +19,8 @@ Open the toolbar popup to pause everywhere, pause the current site, adjust **Per
 
 ### Recent updates
 
+Version 0.2.4 fixes faces becoming detached from their photos while scrolling. Animated overlays hide immediately during page scrolling, nested carousels and scrolling inside open shadow DOM. After scrolling has been quiet for 120 ms, the extension measures and redraws faces at their current positions before revealing them. The original photos stay visible, and pausing Wireface during scrolling keeps it paused.
+
 Version 0.2.3 replaces the sideways nose wobble with a small upward twitch: a quick lift and smooth return over 0.4–0.6 seconds, with a softer accompanying sneer. The extension homepage now opens the dedicated download and installation page.
 
 Version 0.2.2 adds a clickable [wireface.dev](https://wireface.dev) link to the popup footer and extension homepage, and makes this repository build independently. It uses the desktop app's original blue-to-violet wireframe logo on solid black for the Chrome icons and popup. The popup background is also black. Run `npm run icons` to regenerate the PNG sizes from the checked-in `assets/icons/logo.svg` (the desktop app's original artwork, backed with black); ordinary builds copy the checked-in `assets/icons` files.
@@ -28,7 +30,7 @@ Version 0.2.2 adds a clickable [wireface.dev](https://wireface.dev) link to the 
 - **Mood for faces** defaults to **Random per face**. Each face keeps its assignment when it scrolls out of view and back. **Shuffle** assigns another set without rescanning images. Choose **Neutral**, **Happy**, **Cheeky**, **Curious**, **Calm**, **Thoughtful**, **Sleepy** or **Grumpy** to apply that mood to all faces. Mood changes fade smoothly; short idle/hover expressions temporarily take precedence and then return to the standing mood.
 - **More visible idle motion:** the first micro expression starts within 0.4–1.8 seconds of active animation; subsequent expressions have 1.2–3.2 second gaps. A shuffled pool visits every expression before repeating it. Pout and squint are now included, and flat-photo expression strength is increased without amplifying full blinks. All animation remains silent with the jaw closed.
 
-To update an existing unpacked installation, replace the files in its folder with the latest build, click **Reload** on Wireface at `chrome://extensions`, then refresh the web pages. The same `dist` folder and `wireface-chrome.zip` now contain version 0.2.3; existing preferences are preserved.
+To update an existing unpacked installation, replace the files in its folder with the latest build, click **Reload** on Wireface at `chrome://extensions`, then refresh the web pages. The same `dist` folder and `wireface-chrome.zip` now contain version 0.2.4; existing preferences are preserved.
 
 ### Why the earlier version looked like blinking only
 
@@ -81,7 +83,7 @@ npm run test:browser
 npm run package
 ```
 
-The browser suite needs a Playwright Chromium installation. If needed, run `npx playwright-core install chromium`, or set `WIREFACE_CHROMIUM` to a Chromium executable. It uses a temporary browser profile, not your normal Chrome profile. On Windows, the scripts can also use an existing Playwright Chromium installation.
+The browser suite needs a Playwright Chromium installation. If needed, run `npx playwright-core install chromium`, or set `WIREFACE_CHROMIUM` to a Chromium executable. It uses a temporary browser profile, not your normal Chrome profile. On Windows, the scripts can also use an existing Playwright Chromium installation. Scroll regression checks verify that overlays hide during page, nested-container and open-shadow-root scrolling, resume at their measured positions, and respect pausing during a pending scroll restore.
 
 `npm run build` bundles the extension, copies the checked-in `vendor/mediapipe` model/WASM files and includes licence notices. `npm run package` also produces `wireface-chrome.zip`. After rebuilding, click **Reload** on the extension in Chrome and refresh the test page.
 

@@ -1,6 +1,6 @@
 {
   "name": "wireface-chrome-ext",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": true,
   "type": "module",
   "description": "Quietly bring faces in browser images to life.",

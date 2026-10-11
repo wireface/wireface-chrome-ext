@@ -100,6 +100,41 @@ try {
   assert.ok(moved, 'Pixels change during idle animation'); console.log('PASS visible animation changes pixels');
   await page.locator('#link').click(); assert.equal(new URL(page.url()).hash, '#clicked');
   assert.deepEqual(await page.locator('#same').boundingBox(), rectBefore); console.log('PASS layout and image links preserved');
+  // Observe the layer DURING real scroll events, so the short settling delay
+  // cannot turn a late assertion into a false pass. The extension registers its
+  // capture handler first, before this fixture's observer.
+  await page.evaluate(() => {
+    window.scrollChecks = [];
+    window.captureScroll = () => scrollChecks.push(getComputedStyle(document.querySelector('wireface-images')).visibility);
+    addEventListener('scroll', captureScroll, { capture: true, passive: true });
+  });
+  await page.mouse.move(1020, 400);
+  for (let i = 0; i < 4; i++) { await page.mouse.wheel(0, 10); await delay(45); }
+  await page.waitForFunction(() => scrollChecks.length >= 4);
+  assert.ok((await page.evaluate(() => scrollChecks)).every(value => value === 'hidden'), 'Face overlays must hide during page scrolling');
+  await until(s => !s.scrolling && s.active === 2, 'faces resume after page scrolling settles');
+  // CDP can inspect the extension's closed presentation shadow root without
+  // changing it. Check that the restored overlay has fresh viewport coordinates.
+  const cdp = await context.newCDPSession(page);
+  async function assertAligned(image) {
+    const { root: documentNode } = await cdp.send('DOM.getDocument', { depth: -1, pierce: true });
+    const find = node => node.nodeName === 'WIREFACE-IMAGES' ? node : (node.children || []).map(find).find(Boolean);
+    const host = find(documentNode);
+    const canvases = host.shadowRoots.flatMap(root => root.children || []).filter(node => node.nodeName === 'CANVAS');
+    const rect = await page.locator(image).boundingBox();
+    const positions = canvases.map(node => {
+      const attrs = Object.fromEntries(Array.from({ length: node.attributes.length / 2 }, (_, i) => node.attributes.slice(i * 2, i * 2 + 2)));
+      const style = attrs.style || '';
+      return { visible: /display:\s*block/.test(style), x: Number(/left:\s*([-\d.]+)px/.exec(style)?.[1]), y: Number(/top:\s*([-\d.]+)px/.exec(style)?.[1]) };
+    });
+    assert.ok(positions.some(p => p.visible && Math.abs(p.x - rect.x) < 1 && Math.abs(p.y - rect.y) < 1), `${image} overlay must align before it reappears: ${JSON.stringify(positions)}`);
+  }
+  await assertAligned('#same');
+  await page.evaluate(() => { scrollChecks.length = 0; scrollTo(0, 0); });
+  await page.waitForFunction(() => scrollChecks.length > 0);
+  await until(s => !s.scrolling && s.active === 2, 'page scroll restores original placement');
+  await assertAligned('#same');
+  console.log('PASS page scroll hides overlays and restores their measured positions');
   // Pause should restore the original photo without changing the DOM image.
   const set = patch => worker.evaluate(async patch => {
     const { settings = {} } = await chrome.storage.local.get('settings');
@@ -170,8 +205,50 @@ try {
     shadow.append(img); document.querySelector('#dynamic').append(host);
   });
   await until(s => s.detected === 3 && s.active === 3, 'image in open shadow DOM');
+  // Scroll a carousel INSIDE a shadow root. Native scroll events are not
+  // composed, so listening on window alone cannot cover web components.
+  await page.evaluate(() => {
+    const shadow = document.querySelector('#shadow-photo').shadowRoot;
+    const image = shadow.querySelector('img');
+    const scroller = document.createElement('div'); scroller.id = 'shadow-scroller';
+    scroller.style.cssText = 'width:260px;overflow:auto';
+    const track = document.createElement('div'); track.style.cssText = 'width:900px;padding-left:40px';
+    track.append(image); scroller.append(track); shadow.append(scroller);
+    shadow.addEventListener('scroll', captureScroll, { capture: true, passive: true });
+    scrollChecks.length = 0;
+  });
+  await until(s => s.active === 3, 'shadow carousel initially visible');
+  for (const left of [10, 20, 30]) {
+    await page.locator('#shadow-scroller').evaluate((el, left) => { el.scrollLeft = left; }, left); await delay(45);
+  }
+  await page.waitForFunction(() => scrollChecks.length >= 3);
+  assert.ok((await page.evaluate(() => scrollChecks)).every(value => value === 'hidden'), 'Shadow-root scrolling must hide overlays');
+  await until(s => !s.scrolling && s.active === 3, 'faces resume after shadow carousel scrolling');
+  await assertAligned('#shadow-photo img');
   await page.locator('#shadow-photo').evaluate(el => el.remove());
   await until(s => s.detected === 2, 'shadow DOM cleanup');
+  // A normal nested scrolling container must also hide and realign overlays.
+  await page.evaluate(() => {
+    const scroller = document.createElement('div'); scroller.id = 'carousel'; scroller.style.cssText = 'width:290px;overflow:auto';
+    const track = document.createElement('div'); track.style.cssText = 'width:900px;padding-left:40px';
+    const image = new Image(); image.id = 'carousel-face'; image.src = '/sarah.jpg';
+    image.style.cssText = 'width:230px;height:260px;object-fit:cover';
+    track.append(image); scroller.append(track); document.querySelector('#dynamic').append(scroller); scrollChecks.length = 0;
+  });
+  await until(s => s.detected === 3 && s.active === 3, 'nested carousel face detection');
+  for (const left of [10, 20, 30]) { await page.locator('#carousel').evaluate((el, left) => { el.scrollLeft = left; }, left); await delay(45); }
+  await page.waitForFunction(() => scrollChecks.length >= 3);
+  assert.ok((await page.evaluate(() => scrollChecks)).every(value => value === 'hidden'), 'Nested carousel scrolling must hide overlays');
+  await until(s => !s.scrolling && s.active === 3, 'faces resume after nested carousel scrolling');
+  await assertAligned('#carousel-face');
+  await page.locator('#carousel').evaluate(el => { scrollChecks.length = 0; el.scrollLeft = 40; });
+  await page.waitForFunction(() => scrollChecks.length > 0);
+  await set({ enabled: false });
+  await delay(250);
+  assert.equal((await status()).active, 0, 'A pending scroll restore must not override global pause');
+  await set({ enabled: true }); await until(s => s.active === 3, 'resume after pausing during scroll');
+  await page.locator('#carousel').evaluate(el => el.remove());
+  await until(s => s.detected === 2, 'carousel cleanup');
   await page.locator('#same').evaluate(el => el.src = document.querySelector('#empty').src);
   await until(s => s.detected === 1, 'source replacement removes stale face');
   await page.locator('#lazy').scrollIntoViewIfNeeded();

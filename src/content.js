@@ -21,7 +21,9 @@ async function start() {
   const backgroundQueue = new Set();
   let backgroundTimer = 0;
   let pointer = null, hoveredFace = null, hoverPending = false;
-  const running = () => !stopped && enabledFor(settings, site) && !document.hidden;
+  let scrolling = false, scrollTimer = 0;
+  const SCROLL_IDLE_MS = 120;
+  const running = () => !stopped && !scrolling && enabledFor(settings, site) && !document.hidden;
 
   function ensureLayer() {
     if (!host) {
@@ -138,6 +140,8 @@ async function start() {
 
   function observe(root) {
     roots.add(root);
+    // Scroll events inside shadow trees do not cross the shadow boundary.
+    if (root.host) root.addEventListener('scroll', onScroll, { passive: true, capture: true });
     observer.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ['src', 'srcset', 'sizes', 'style', 'class', 'hidden'] });
     root.addEventListener('load', event => {
       if (event.target instanceof HTMLImageElement) { watch(event.target); refresh(records.get(event.target)); pump(); }
@@ -151,7 +155,10 @@ async function start() {
       else if (!record.visible && record.awaySince && performance.now() - record.awaySince > 8000 && record.texture) dispose(record);
     }
     // Avoid retaining detached shadow trees on pages that replace their UI.
-    for (const root of roots) if (root.host && !root.host.isConnected) roots.delete(root);
+    for (const root of roots) if (root.host && !root.host.isConnected) {
+      root.removeEventListener('scroll', onScroll, true);
+      roots.delete(root);
+    }
   }
 
   function captureImage(img) {
@@ -337,6 +344,8 @@ async function start() {
     // If a quick re-entry hits the cooldown, keep one pending reaction until it
     // can run. Remaining over the image never continuously restarts reactions.
     if (hoverPending && hoverCandidate?.idle.react(hoverTime)) hoverPending = false;
+    // Reveal only after fresh placement and drawing, never from the scroll timer.
+    host?.style.setProperty('visibility', 'visible', 'important');
     wake();
   }
 
@@ -344,6 +353,22 @@ async function start() {
     cancelAnimationFrame(raf); raf = 0; active = 0;
     pointer = null; hoveredFace = null; hoverPending = false;
     for (const r of records.values()) { r.active = 0; if (r.canvas) r.canvas.style.display = 'none'; }
+  }
+
+  function onScroll() {
+    if (stopped) return;
+    scrolling = true;
+    // The fixed overlay can lag compositor scrolling. Show the original photos
+    // throughout scrolling, then repaint at their settled viewport coordinates.
+    host?.style.setProperty('visibility', 'hidden', 'important');
+    pause();
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => {
+      scrollTimer = 0;
+      scrolling = false;
+      lastFrame = performance.now();
+      wake(); pump();
+    }, SCROLL_IDLE_MS);
   }
 
   chrome.storage.onChanged.addListener((changes, area) => {
@@ -361,7 +386,7 @@ async function start() {
       renderer?.destroy(); renderer = null;
       discover(document); pump();
     }
-    if (message.type === 'status' || message.type === 'rescan') respond({ enabled: enabledFor(settings, site), site, active: [...records.values()].reduce((n, r) => n + (r.active || 0), 0), scanned, skipped, error, detected: [...records.values()].reduce((n, r) => n + (r.faces?.length || 0), 0), scanning: detecting,
+    if (message.type === 'status' || message.type === 'rescan') respond({ enabled: enabledFor(settings, site), site, active: [...records.values()].reduce((n, r) => n + (r.active || 0), 0), scanned, skipped, error, detected: [...records.values()].reduce((n, r) => n + (r.faces?.length || 0), 0), scanning: detecting, scrolling,
       faceStates: [...records.values()].flatMap(r => (r.faces || []).map(f => ({ mood: f.idle.mood, expression: f.idle.gesture?.spec.name || null,
         gestures: f.idle.gestureCount, hovers: f.idle.hoverCount, gaze: f.gaze.value.slice() }))) });
   });
@@ -373,12 +398,19 @@ async function start() {
   addEventListener('pointerout', event => { if (!event.relatedTarget) clearPointer(); }, { passive: true });
   addEventListener('blur', clearPointer);
   document.addEventListener('visibilitychange', () => { if (!running()) pause(); else { lastFrame = performance.now(); wake(); pump(); } });
-  addEventListener('scroll', () => { wake(); pump(); }, { passive: true, capture: true });
+  addEventListener('scroll', onScroll, { passive: true, capture: true });
   addEventListener('resize', () => { for (const r of records.values()) refresh(r); wake(); pump(); }, { passive: true });
   addEventListener('pagehide', event => {
+    clearTimeout(scrollTimer); scrollTimer = 0; scrolling = false;
     pause(); for (const r of records.values()) dispose(r);
     renderer?.destroy(); renderer = null;
-    if (!event.persisted) { stopped = true; observer.disconnect(); intersection.disconnect(); clearInterval(maintenance); clearTimeout(backgroundTimer); backgroundQueue.clear(); }
+    if (!event.persisted) {
+      stopped = true; observer.disconnect(); intersection.disconnect();
+      clearInterval(maintenance); clearTimeout(backgroundTimer); backgroundQueue.clear();
+      removeEventListener('scroll', onScroll, true);
+      for (const root of roots) if (root.host) root.removeEventListener('scroll', onScroll, true);
+      roots.clear();
+    }
   });
   addEventListener('pageshow', () => { if (running()) { wake(); pump(); } });
   const maintenance = setInterval(() => { cleanup(); if (running()) pump(); }, 2500);

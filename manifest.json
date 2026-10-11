@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Wireface — Images, alive",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "homepage_url": "https://wireface.dev/extension/",
   "description": "Faces in pictures blink, smirk, twitch their noses and smile. Quiet, random idle animation, processed on your device.",
   "minimum_chrome_version": "116",
