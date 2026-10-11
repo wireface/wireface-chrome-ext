@@ -7,7 +7,7 @@ export const GESTURES = Object.freeze([
   { name: 'smirk-right', duration: [1.8, 3], channels: { smileR: .95, smileL: .08, browUpL: .3 } },
   { name: 'brow-raise', duration: [1.3, 2.1], channels: { browUpL: .85, browUpR: .85 } },
   { name: 'one-brow', duration: [1.8, 2.7], channels: { browUpL: .95, browUpR: .08 } },
-  { name: 'nose-twitch', duration: [.75, 1.1], channels: { sneer: .65 }, twitch: true },
+  { name: 'nose-twitch', duration: [.4, .6], channels: { sneer: .2 }, twitch: true },
   { name: 'pout', duration: [2, 3.2], channels: { pout: .95, frown: .12, browInner: .18 } },
   { name: 'squint', duration: [1.4, 2.3], channels: { squintL: .48, squintR: .48, browDown: .25 } },
 ]);
@@ -18,10 +18,10 @@ const PHOTO_GAIN = Object.entries({ smileL: 1.65, smileR: 1.65, browUpL: 1.8, br
   browDown: 1.6, browInner: 1.6, frown: 1.55, pout: 1.4, sneer: 1.5 });
 
 const smooth = t => t * t * (3 - 2 * t);
-export function envelope(progress) {
+export function envelope(progress, releaseStart = .6) {
   if (progress <= 0 || progress >= 1) return 0;
   if (progress < .24) return smooth(progress / .24);
-  if (progress > .6) return smooth((1 - progress) / .4);
+  if (progress > releaseStart) return smooth((1 - progress) / (1 - releaseStart));
   return 1;
 }
 
@@ -95,11 +95,12 @@ export class IdleMotion {
     let twitch = 0;
     if (this.gesture) {
       const g = this.gesture, progress = (time - g.start) / g.duration;
-      const amount = envelope(progress) * g.strength;
+      // A nose twitch lifts quickly, then relaxes without a held pose or oscillation.
+      const amount = envelope(progress, g.spec.twitch ? .24 : .6) * g.strength;
       // A transient expression temporarily overrides conflicting standing moods.
       for (let c = 0; c < CH.length; c++) if (!CH[c].startsWith('blink')) w[c] *= 1 - amount * .85;
       for (const [name, value] of Object.entries(g.spec.channels)) w[C[name]] += value * amount * intensity;
-      if (g.spec.twitch) twitch = Math.sin(progress * Math.PI * 4) * amount * intensity;
+      if (g.spec.twitch) twitch = amount * intensity;
       if (progress >= 1) this.gesture = null;
     }
     for (const [name, gain] of PHOTO_GAIN) w[C[name]] *= gain;

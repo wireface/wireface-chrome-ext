@@ -106,7 +106,7 @@ export class FittedFace {
       let y = v + positions[i * 2 + 1] - this.neutral[i * 2 + 1];
       const distance = ((u - noseX) / Math.max(0.001, (b.right - b.left) * 0.13)) ** 2
         + ((v - noseY) / Math.max(0.001, (b.bottom - b.top) * 0.12)) ** 2;
-      x += Math.exp(-distance * 1.7) * motion.twitch * (b.right - b.left) * 0.024;
+      y -= Math.exp(-distance * 1.7) * motion.twitch * (b.bottom - b.top) * 0.018;
       // Most of the 3D pout is forward (Z), which a flat photo transfer discards.
       // Give it an actual 2D silhouette: gently purse and thicken the lower lip.
       const lipRegion = Math.exp(-.5 * (((u - this.mouth[0]) / this.mouthRadius[0]) ** 2 + ((v - this.mouth[1]) / this.mouthRadius[1]) ** 2));

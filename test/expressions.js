@@ -4,7 +4,7 @@ import { GESTURES } from '../src/idle.js';
 const image = await createImageBitmap(await (await fetch('/amara.jpg')).blob());
 const points = await (await fetch('/amara.json')).json();
 const renderer = new PhotoRenderer();
-for (const name of ['neutral', 'blink', 'smile', 'smirk-left', 'pout', 'brow-raise', 'look-left', 'look-right', 'look-down']) {
+for (const name of ['neutral', 'blink', 'smile', 'smirk-left', 'pout', 'brow-raise', 'nose-twitch', 'look-left', 'look-right', 'look-down']) {
   const face = new FittedFace(points, image.width / image.height);
   face.idle.nextBlink = face.idle.nextGesture = Infinity;
   if (name === 'blink') face.idle.blinkStart = .41;
