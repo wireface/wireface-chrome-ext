@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Wireface</title><link rel="stylesheet" href="popup.css"></head>
+<body>
+  <header><img class="mark" src="icons/logo.svg" width="38" height="38" alt="Wireface logo"><div><h1>wireface<span>®</span></h1><p>Images, alive.</p></div><span class="badge">SILENT MODE</span></header>
+  <main>
+    <label class="row"><span><strong>Bring faces to life</strong></span><input id="enabled" type="checkbox" role="switch"><span class="switch" aria-hidden="true"></span></label>
+    <label class="row"><span><strong>On this site</strong><small id="site">Loading…</small></span><input id="siteEnabled" type="checkbox" role="switch"><span class="switch" aria-hidden="true"></span></label>
+    <div class="motion"><label for="intensity">Personality <output id="amount">65%</output></label><input id="intensity" type="range" min="0" max="100" step="5"><div><span>Still</span><span>Expressive</span></div></div>
+    <label class="row"><span><strong>Eyes follow the pointer</strong></span><input id="eyeTracking" type="checkbox" role="switch"><span class="switch" aria-hidden="true"></span></label>
+    <label class="row"><span><strong>Random expression on hover</strong></span><input id="hoverExpressions" type="checkbox" role="switch"><span class="switch" aria-hidden="true"></span></label>
+    <section class="moods"><label for="mood">Mood for faces</label><div><select id="mood" aria-describedby="moodHint"></select><button id="shuffleMoods" type="button">Shuffle</button></div><small id="moodHint">Each face gets its own mood.</small></section>
+    <label class="row mesh"><span><strong>Show the wire mesh</strong></span><input id="showMesh" type="checkbox" role="switch"><span class="switch" aria-hidden="true"></span></label>
+    <section class="status" aria-live="polite"><span class="dot"></span><p id="status">Finding faces…</p><button id="rescan" type="button" title="Scan this page again" aria-label="Scan this page again">↻</button></section>
+    <p id="detail"></p>
+  </main>
+  <footer><a href="https://wireface.dev" target="_blank" rel="noopener noreferrer">wireface.dev</a><span aria-hidden="true">·</span><span>Local detection. No uploads. No audio.</span></footer>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

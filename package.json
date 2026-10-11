@@ -1,0 +1,22 @@
+{
+  "name": "wireface-chrome-ext",
+  "version": "0.2.2",
+  "private": true,
+  "type": "module",
+  "description": "Quietly bring faces in browser images to life.",
+  "homepage": "https://wireface.dev",
+  "repository": { "type": "git", "url": "https://github.com/wireface/wireface-chrome-ext.git" },
+  "license": "SEE LICENSE IN LICENSE.md",
+  "scripts": {
+    "icons": "node tools/icons.mjs",
+    "build": "node tools/build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:browser": "node test/browser.mjs",
+    "package": "node tools/package.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "fflate": "0.8.2",
+    "playwright-core": "1.64.0"
+  }
+}
