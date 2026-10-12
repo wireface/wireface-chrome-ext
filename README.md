@@ -101,4 +101,4 @@ The unit tests cover silent random expression coverage, independent timing, hove
 - `test/`: unit and real-browser checks, with local fixtures.
 - `vendor/`: pinned Wireface runtime and MediaPipe assets; see `vendor/README.md` for their origins.
 
-Wireface code retains the Wireface SDK Licence copied into the built extension. MediaPipe's model, runtime and canonical geometry retain their Apache 2.0 notices. See `LICENSE.md`, `NOTICE` and `licenses/Apache-2.0.txt`; these also ship with the built extension.
+Wireface code retains the Wireface Personal Licence copied into the built extension. MediaPipe's model, runtime and canonical geometry retain their Apache 2.0 notices. See `LICENSE.md`, `NOTICE` and `licenses/Apache-2.0.txt`; these also ship with the built extension.
